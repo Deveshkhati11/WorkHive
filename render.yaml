@@ -1,0 +1,67 @@
+databases:
+  - name: workhive-postgres
+    databaseName: workhive
+    user: workhive
+    plan: free
+
+services:
+  # Backend Spring Boot Service
+  - type: web
+    name: workhive-backend
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: free
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: workhive-postgres
+          property: connectionString
+      - key: JWT_SECRET
+        value: workhive_production_super_secret_jwt_key_2024_minimum_256_bits_long
+      - key: JWT_EXPIRATION
+        value: "3600000"
+      - key: JWT_REFRESH_EXPIRATION
+        value: "604800000"
+      - key: APP_FRONTEND_URL
+        value: https://workhive-frontend-8kkn.onrender.com
+      - key: SPRING_MAIL_HOST
+        value: smtp.gmail.com
+      - key: SPRING_MAIL_PORT
+        value: "587"
+      - key: SPRING_MAIL_AUTH
+        value: "true"
+      - key: SPRING_MAIL_STARTTLS_ENABLE
+        value: "true"
+      - key: SPRING_MAIL_STARTTLS_REQUIRED
+        value: "true"
+      - key: SPRING_MAIL_SSL_TRUST
+        value: smtp.gmail.com
+      - key: SPRING_MAIL_USERNAME
+        sync: false
+      - key: SPRING_MAIL_PASSWORD
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+
+  # Frontend Vite React Static Site
+  - type: web
+    name: workhive-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: pnpm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: VITE_API_BASE_URL
+        value: https://workhive-backend-zg37.onrender.com/api
